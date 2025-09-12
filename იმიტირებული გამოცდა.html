@@ -1,0 +1,574 @@
+
+<!DOCTYPE html>
+<html lang="ka">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ერთიანი ეროვნული გამოცდები - იმიტირებული ტესტი</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        }
+        .exam-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .text-preview-container {
+            max-height: 60vh;
+            overflow-y: auto;
+            border: 1px solid #e2e8f0;
+            padding: 1rem;
+            border-radius: 0.5rem;
+        }
+        .georgian-text {
+            font-family: "Sylfaen", "Noto Sans Georgian", serif;
+            line-height: 1.8;
+            font-size: 1.1rem;
+            text-align: justify;
+        }
+    </style>
+<link rel="stylesheet" href="/index.css">
+</head>
+<body class="bg-gray-100">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useMemo, useCallback } = React;
+
+        // --- ENUMS ---
+        const ExamPart = {
+            WELCOME: 'WELCOME',
+            PART_ONE: 'PART_ONE',
+            PART_TWO_SELECT: 'PART_TWO_SELECT',
+            PART_TWO: 'PART_TWO',
+            RESULTS: 'RESULTS',
+        };
+
+        const TextSelection = {
+            TEXT_ONE: 'TEXT_ONE',
+            TEXT_TWO: 'TEXT_TWO',
+        };
+
+        // --- CONSTANTS ---
+        const EXAM_DURATION = 3 * 60 * 60; // 3 hours in seconds
+
+        const partOneContent = {
+            title: "ტექსტის რედაქტირება",
+            instruction: "ყურადღებით წაიკითხეთ ქვემოთ მოცემული ტექსტი. გაასწორეთ მორფოლოგიურ-ორთოგრაფიული, სინტაქსური, პუნქტუაციური შეცდომები და სტილისტური ხარვეზები და ისე გადაწერეთ მთელი ტექსტი, რომ მისი შინაარსი არ შეცვალოთ.",
+            warning: "გაითვალისწინეთ, ქულები დაგაკლდებათ თქვენ მიერ გადაწერილ ტექსტში დაშვებული თითოეული შეცდომის, ხარვეზისა თუ უზუსტობის გამო. თუ ამოიწერთ მხოლოდ ცალკეულ ფორმებსა და შესიტყვებებს ან რამდენიმე წინადადებას, ნაშრომი არ შეფასდება.",
+            score: 16,
+            textToEdit: `ოლღა ალექსანდრეს ასული გურამიშვილი ილია ჭავჭავაძის მეუღლის უახლოესი ნათესავი და მისივე ნათლული იყო. თბილისის ქალთა გიმნაზიის წარჩინებით დამთავრების შემდეგ იგი სწავლობდა ამიერკავკასიის ქალთა ინსტიტუტში. ამ პერიოდში ოლღა ესწრებოდა პროფესორ თარხნიშვილის ლექციებს ბუნებისმეტყველებაში.\nგაზეთ „დროების“ გარშემო თავმოყრილმა მოწინავე ქართველობამ მიზნად დაისახეს ახალგაზრდა ქალების ხელშეწყობა რათა მათ უმაღლესი განათლების მისაღებათ ევროპაში გამგზავრება შეძლებოდათ. მიუხედავად მშობლების წინააღმდეგობისა 17 წლის ოლღა სახლიდან გაიპარა და სხვის პასპორტით გაემგზავრა შვეიცარიაში ქალაქ ციურიხში.\nსაქართველოში დაბრუნების შემდეგ ოლღა ასწავლიდა თბილისის ვაჟთა გიმნაზიაში. იგი იყო ერთ-ერთი პირველი ქალი მასწავლებელი რუსეთის იმპერიაში. მას თვით იაკობ გოგებაშვილმა გაუწია რეკომენდაცია. 1883 წელს ოლღა გურამიშვილმა ნიკო ნიკოლაძეზე დაიწერა ჯვარი. ახალდაქორწინებულები პეტერბურგში გაემგზავრნენ რადგან ნიკო იქ იყო გადასახლებული. საქართველოში დაბრუნებული ნიკოლაძეები დიდ ჯიხაიშში დასახლდნენ. ოლღამ აქ გახსნა ქალთა პირველი სკოლა სადაც იგი ტექნიკის სიახლეებს აცნობდა მოსწავლეებს რადგან მათ შესაძლებლობა ჰქონოდათ, რომ სოფლის მეურნეობა უკეთ გაენვითარებინათ. იგი ახალგაზრდებისათვის ახდენდა აბრეშუმის ჭიის მოვლამოყვანის, ხალიჩებისა და ფარდაგების ქსოვის სწავლებას.`
+        };
+
+        const textOneContent = {
+            id: TextSelection.TEXT_ONE,
+            title: "ილია ჭავჭავაძე - „ოთარაანთ ქვრივი“",
+            author: "",
+            fullText: `ეს ხასიათი დასჩემდა გიორგისა, – თავისი იყო თუ სხვისა, – თუ ცუდი რამ იყო, გამოეკიდებოდა. ბევრს ამისათვის არ მოსწონდა გიორგი. კაცო, რა უნდა, სხვის საქმეში რად ერევაო?.. ამ ხასიათმა ბევრი ხიფათი შეამთხვია... ამას წინად – სულ ორი კვირა არ იქნება – კინაღამ სოფლის სასამართლომ გომურში არ ჩაამწყვდია. ერთი უცნაური და დაუჯერებელი ამბავი ჩაედინა.\nგიორგი ტყეში ყოფილიყო ჭიგოს საჭრელად. ომარაანთ მოჯამაგირე ენახა ტყეში. თურმე ურემი გამოუტანებიათ შეშისათვის და ის კი ჩრდილში წამოწოლილიყო და ლაზათიანად ჰხვრინავდა. ეს კიდევ არაფერი. კამეჩები წნელით გამოება ურემზე. საცოდავი პირუტყვები იქავ ურმის თვალთან ეყარნენ და ზარმაცად იცოხნებოდნენ უილაჯობით.\nგიორგი თურმე ზედ მიადგა მოჯამაგირეს... ფეხი წაჰკრა გასაღვიძებლად.\n– ადე, ძმობილო, აუშვი ე კამეჩები, ცოდონი არიან.\n– შენ რა ჩემი ფეხები გინდა, – დაუყვირა მოჯამაგირემ, როცა თვალები წამოაჭყიტა.\n– თითონ რომ არ ვარგიხარ, შენი ფეხები ვისთვის რის მაქნისია. კამეჩები ცოდონი არიან-მეთქი.\n– მერე შენ რა გეპრიანება?\n– ის მეპრიანება, რომ არამია შენთვის ჯამაგირი. ვთქვათ პატრონს ატყუებ და ატყუებ, ე პირუტყვი მაინც არ გენანება, ქრისტიანი არა ხარ, მაგათი ცოდო მაინც არ გწვავს!.. მიგიღძვია საცოდავები წნელით ურემზედ, შიმშილით ფერდები ჩასცვივნიათ.\n– მაშ არადა თავზედ დავისვამდი.\n– დაისვამდი, მე ვიცი, მაგ ქეციან თავზედ ბევრს კი მოსძოვდნენ, აი!.. ვერა ჰხედავ, ტყეში ბალახი მუხლამდეა! ფასი ხომ არ გაგივა, გაგეშო, პირი მოეტყუებინათ.\n– გამეშო-რა, მუქთი ფეხები მაქვს, მაგათ ძებნაში მერე სული ამომრთმევოდა.\n– აი, შე უნამუსო! აქაო და არავინა მხედავსო, ნამუსის ქუდი აგიხდია და ლაფში გადაგიგდია. შენს ღმერთს რაღას ეუბნები! აქაო და კამეჩი პირუტყვია, შებრალება არ უნდა, თუნდაც სხვის ამანათი, სხვის მონაბარი არ იყოს?\n– მერე შენ რა? ვისი ტიკი-ტომარა ხარ. შენი მოჯამაგირე ხომ არა ვარ?\n– აი გაქრეს, გიორგიმ შენისთანა კაცი ახლოს არ მიიკაროს!! ჩემი რომ იყო, ცარიელ პურის ჭამის ფასადაც არ შეგინახავდი. ადე-მეთქი!..\n– დამეხსენ... შენ შენს წერას ხომ არ აუტანიხარ, რატომ ეგრე არახუნებ. თუ ზურგი არა გქავა, შენ შენს გზაზედ წადი-მეთქი, თორემ...\n– თორემ... მე ვიცი, ყურებზედ ხახვი არ დამაჭრა. ადე-მეთქი, ამ პირუტყვების ცოდვაში ნუ სდგები, თორემ ამ ჭიგოს ხომ ჰხედავ?..\nგიორგიმ ამის თქმაზედ ფეხი კიდევ წაჰკრა. მოჯამაგირე გულზე მოვიდა. წამოუხტა ზეზე. გიორგის წინ აეტუზა, გულ-მკერდი გადმოუგდო და მიუშვირა, თითქო ეუბნება: აბა, ეს მე და ეს შენ, დამკარ თუ კაცი ხარ და ქუდი გხურავსო.\nგიორგის მოეწონა ამისთანა სითამამე მოჯამაგირისა, მაგრამ უკვირდა, – რის იმედითაო.\nრა ვქნაო, – სთქვა გულში გიორგიმ, – თუ ეს მართლა ვაჟკაცია, საქმეს არ უღალატებდა, პირუტყვს შეიბრალებდა, და თუ ვაჟკაცი არ არის, რატომ ესე გაბედულად მომიშვირა გულ-მკერდი და თავმოწონებით ალვის ხესავით წინ გამემართაო.\n– თუ კაცი ხარ და თითს დამაწებ!.. მაშინ ნახავ შენს სეირს, – უთხრა გულმკერდმოღერებულმა მოჯამაგირემ.\nმუქარა იწყინა გიორგიმ. აღარც აცია, აღარც აცხელა, ეცა, წამოჰკრა სარმა და თუმცა ვერ დასცა, წააბარბაცა კი და ცალი ხელი დააბჯენინა დედამიწაზედ. წამოუხტა ფიცხლავ მოჯამაგირე, დაეტაკა გიორგის და ჰკრა გულისპირში ხელი. გიორგი შეტოკდა და გადაიზნიქა უკან.\n– ბიჭო!.. შენ აღარა ხუმრობ, – დაუძახა გიორგიმ, ჭიგო ხელიდამ გააგდო და შეძიძგილავდნენ.\nგიორგიმ ბევრი აღარ აცალა: ჰკრა მოგვერდი და გააკრა დედამიწას, როგორც შოთი თონესა. წაქცეულს ხელიც არ დააკარა. მოჯამაგირემ დამარცხება ძალიან ითაკილა, ისიც თავმოწონებული ბიჭი იყო, – წამოუხტა და ერთი ლაზათიანი სილა გაუშალა გიორგის უეცრად. როგორ თუ სილაო, მივარდა გიორგი, ამოიდო ქვეშ და იმდენი სცემა, რომ მოჯამაგირემ ხვეწნა დაუწყო.\n– წადი, საცა შენი სთქვა, იქ ჩემიც ნუ დაგავიწყდებაო, – უთხრა გიორგიმ, – და ღმერთს კი არსად წაუხვალ ამ პირუტყვების ცოდვითაო.\nთქმა არ უნდა, რომ გიორგისაგან გაბოროტებულმა მოჯამაგირემ თავისი ცემა შესჩივლა ომარაშვილსა.\n– რაზედ გცემაო? – ჰკითხა ომარაშვილმა.\n– მაგდენს რად უდებ ურემსაო? ან საქონელი არ გეცოდება, ან შენი თავიო!.. ეგეც რომ არ იყოს, სხვასაც ხომ მაგდენს მოსთხოვენო: ვთქვათ, შენ შეგიძლიან, სხვა მაინც არ გეცოდებაო. მომდგა ამაზედ და ჭიგო ზედ დამალეწა. შენც დედა და მამა საფლავში არ დაგიყენა. აქაო-და ჯამაგირს იძლევა, სულს ხომ არ ამოგართმევს ადამიანსაო.\n– ბიჭო-და, მაგდენი არა გედო-რა ურემზე!\n– ეგა სთქვი-და!.. მეც ეგ არ მიკვირს, რა მოეჩვენა იმ ოჯახდაქცეულსა! მე კი ასე შემაქცია-და!..\nომარაშვილი გავლენიანი კაცი იყო სოფელში, ითაკილა, მოჯამაგირე როგორ გამილახა იმ გუშინდელმა ჭყლინტმაო. წაიყვანა მოჯამაგირე და სოფლის სასამართლოში აჩივლა. თითონაც, რასაკვირველია, წაექომაგა.\n– მოწმე გყავსო? – ჰკითხეს მოჯამაგირეს.\n– ოთარაანთ გიორგის რა მოწმე უნდა? ღმერთმანი, იტყუებს-და!.. – სთქვა ვიღაცამ.\n– მაგას კი მართალს ამბობს, – სთქვა ერთმა მოსამართლემ, – ის ტყუილს არ იტყვის, პირიანი ბიჭია.\nკვირა დღეს დაიბარეს გიორგი.\n– მართლა სცემე? – ჰკითხეს.\n– მართლა ვცემე.\n– რაზედაო?\nგიორგიმ ყველაფერი უამბო.\n– ბიჭო-და, შენ რა დავა გქონდა?\n– ის დავა მქონდა, რომ მაგისთანა ნამუსახდილ კაცისაგან ქვეყანაა დაღუპული. კაცი კაცს ვეღარა ჰნდობია. მაგის გამოისობით კარგ მოჯამაგირესაც ნამუსი აქვს გატეხილი. თითონ ხომ ეძინა და ეძინა, კამეჩებიც მიეღრძო ურემზედ. იმათ საცოდაობამ დამწვა, სხვა არა იყოს-რა.\nთქვენი მტერი იყოს, მოსამართლეებს დღე დაადგათ. ომარაშვილის გულის მოგებაც უნდოდათ, ერთს სადილს მაინც გვაჭმევსო; ოთარაანთ ქვრივისაც ეშინოდათ, გუბერნატორამდის ივლისო.\nთუნდ ეგეც არ ყოფილიყო, გული გიორგისაკენ უწევდათ, თუმცა ცემა კი ცემად ედგათ თვალწინ. არ იცოდნენ, გულს აჰყოლოდნენ, ოთარაანთ ქვრივის შიშსა, თუ ომარაშვილის ხათრსა.\nომარაშვილმა დაიხსნა გაჭირვებისაგან სამართალი.\n– მე ჩემდა თავად მიპატიებია გიორგისათვის, – სთქვა ამან, – და სხვამ თავისი იცის. ყოჩაღ ბიჭო, მე და ჩემმა ღმერთმა. ყოჩაღ!..\n– მე და ჩემმა ღმერთმა, მართალს ამბობს, – სთქვეს მოსამართლეებმა და დაითხოვეს შინ გამართლებული გიორგი.`
+        };
+
+        const questionsTextOne = [
+            { id: 1, question: "რომელ ლიტერატურულ მიმდინარეობას მიეკუთვნება ეს ნაწარმოები?", options: ["მოდერნიზმს", "რეალიზმს", "რომანტიზმს", "პოსტმოდერნიზმს"], points: 1 },
+            { id: 2, question: "რას ნიშნავს სიტყვა *უილაჯობა*?", options: ["ავადმყოფობას", "გამძლეობას", "გულგრილობას", "უღონობას"], points: 1 },
+            { id: 3, question: "რის თქმა სურს მოჯამაგირეს სიტყვებით: „შენ რა გეპრიანება“?", options: ["შენ რატომ არ უვლიო", "შენ ვინ გეკითხებაო", "შენზე ნაკლები ვინ არისო", "შენ ჭკუას ვის ასწავლიო"], points: 1 },
+            { id: 4, question: "რომელ ფრაზაშია გამოყენებული მხატვრული საშუალება?", options: ["„ვერა ჰხედავ, ტყეში ბალახი მუხლამდეა“.", "„მიგიღძვია საცოდავები წნელით ურემზედ.“", "„ნამუსის ქუდი აგიხდია და ლაფში გადაგიგდია“.", "„პირუტყვები იქავ ურმის თვალთან ეყარნენ“."], points: 1 },
+            { id: 5, question: "რაზე მიუთითებს გიორგის სიტყვები: „ჩემი რომ იყო, ცარიელ პურის ჭამის ფასადაც არ შეგინახავდი“?", options: ["ბატონის პატივისცემასა და ერთგულებაზე", "მეტისმეტ სიმკაცრესა და შეუწყნარებლობაზე", "მოჯამაგირეების შრომის დაუფასებლობაზე", "შრომის სიყვარულსა და დაფასებაზე"], points: 1 },
+            { id: 6, question: "რა მხატვრული საშუალებაა გამოყენებული მონაკვეთში: „...ალვის ხესავით წინ გამემართაო“?", options: ["გაპიროვნება", "ეპითეტი", "შედარება", "ჰიპერბოლა"], points: 1 },
+            { id: 7, question: "მოჯამაგირის რა თვისება ჩანს მის მიერ ომარაშვილისთვის ნათქვამ სიტყვებში: „მაგდენს რას უდებ ურემსაო?.. სხვასაც ხომ მაგდენს მოსთხოვენო“?", options: ["გაბედულება", "თვალთმაქცობა", "სიმხდალე", "წინდახედულება"], points: 1 },
+            { id: 8, question: "რა იგულისხმება სიტყვებში „პირიანი ბიჭია“?", options: ["კარგი მოსაუბრეა", "მამაცია", "მიმზიდველი გარეგნობისაა", "პატიოსანია"], points: 1 },
+            { id: 9, question: "რას გულისხმობდნენ მოსამართლეები, როცა ოთარაანთ ქვრივზე იფიქრეს: „გუბერნატორამდე ივლისო“?", options: ["გაბრაზდება და სამსახურიდან დღესვე გაგვყრისო", "იმდენს იზამს, თვით გუბერნატორს გაიცნობსო", "მთავრობის დახმარებით მოჯამაგირეზე შურს იძიებსო", "ყველაფერს გააკეთებს და სამართალს იპოვისო"], points: 1 },
+            { id: 10, question: "მოსამართლეების რა კონკრეტული თვისება ჩანს მონაკვეთში: „ომარაშვილის გულის მოგებაც უნდოდათ, ერთს სადილს მაინც გვაჭმევსო...“?", options: ["ანგარება", "სიმხდალე", "შემწყნარებლობა", "შორსმჭვრეტელობა"], points: 1 }
+        ];
+
+        const essayPromptTextOne = {
+            title: "როგორია საზოგადოების დამოკიდებულება იმ ადამიანის მიმართ, რომელიც „სხვის საქმეში ერევა“.",
+            instruction: "იმსჯელეთ, როგორაა წარმოჩენილი ტექსტის მოცემულ მონაკვეთში ეს პრობლემა და რამდენად აქტუალურია იგი დღეს.",
+            score: 34
+        };
+
+        const textTwoContent = {
+            id: TextSelection.TEXT_TWO,
+            title: "გივი გეგეჭკორი - „ვინ იდგამს თავზე ეკლის გვირგვინს?“",
+            author: "",
+            fullText: `ვინ იდგამს თავზე ეკლის გვირგვინს?\nვინ მენავეა?\nიმისი ნავი სად დაცურავს ან სად აბია?\nიგი ჩვენს ნავში როდის იჯდა?\nდა თუკი იჯდა,\nთუ გარჯილა და ნავში წყალი თუ უხაპია?\n\nსად იყო მაშინ, როცა ხეზე ავიდა ფითრი?\nრად მივაჩნივართ ყველა ბრიყვებად.\nვინ იდგამს თავზე ეკლის გვირგვინს?\nის ხომ არ არის,\nმისი სიმძიმით ვინც უთუოდ მოიდრიკება?\n\nთუ მატიანის ფოლიანტზე არ გაიჭყლიტა,\nრა ქნა ისეთი, რომ იმისთვის სხვა რამ მცირეა?\nო, ეკლის გვირგვინს იქნებ იგი ეპოტინება,\nვინც ხალხს ზვარაკად ვერასოდეს შეეწირება?\n\nის ხომ არ იდგამს ეკლის გვირგვინს,\nვინც სხვებს ზევიდან\nისე დაჰყურებს, როგორც თაგუნებს?\nვისაც ჰგონია, რომ საქართველო\nმისი რჩეული სიყვარულის ღირსია მხოლოდ\nდა გულზე ხელებს ვინც იბრაგუნებს?\n\nმამულს თავისი სიყვარული რომ უწყალობა,\nჩვენ მადლობლები უნდა ვიყოთ...\nარა ჰყოლია\nუფრო ერთგული შვილი მამულს და მას ეკუთვნის\nმხოლოდ სამშობლოს სიყვარულის მონოპოლია.\n\nის ხომ არ იდგამს ეკლის გვირგვინს, ვისი მახვილიც\nუგნურება და უმეცრება არის რეგვენთა?\nვისაც ჰგონია, რომ ამაგი არ დაუფასეს\nდა ვისაც უნდა მის გარშემო შექმნას ლეგენდა?\n\nსად არის მისი აგებული სვეტიცხოველი?\nთაყვანისცემით გაბერილმა პარანოიკმა\nგულუბრყვილონი როგორ უნდა დაიმორჩილოს,\nრომ განდიდების წყურვილი და ჟინი მოიკლას?\n\nო, ნუთუ იგი იმ იმედით დაიარება,\nრომ გაჩუმდება და არავინ არაფერს იტყვის?\nვინც არის-მეთქი მხოლოდ სახელს დახარბებული,\nის ხომ არ იდგამს წამებულის ეკლიან გვირგვინს?\n\nვინ ცდილობს ხალხი შეცდომაში რომ შეიყვანოს?\nვით შეიფერებს ეკლის გვირგვინს თავი სახედრის?\nამ ქვეყანაზე თავის ფუსფუსს,\nთავის ღოღიალს,\nთავის უბადრუკ არსებობას რატომ გვაყვედრის?\n\nის ხომ არ იდგამს ეკლის გვირგვინს, ვინც ქვეყანაზე\nდაბადებული არის მლიქვნელად?\nსაითაც ქარი დაუბერავს, ვინც მხოლოდ იქით\nგადაყვლეფილი სინიდისით გადიზნიქება?\n\nის ხომ არ იდგამს ეკლის გვირგვინს, ვინც კაცს გულგრილად\nგულს უხეთქავს და მერე უხდის საკადრის ქელეხს?\nო, ეკლის გვირგვინს ვისი ხელი ეპოტინება,\nრა უნდა მასთან ანგარებით დაკრუნჩხულ ხელებს?\n\nო, ვინც განცხრომას ვერასოდეს ვერ შეელევა,\nტანჯვა არ იცის და ერთობა სხვებზე ქირქილით,\nის ხომ არ არის?\nდააკვირდით...\nვის უნდა თავი,\nრომ დაიმშვენოს წამებულის ეკლის გვირგვინით?..`
+        };
+
+        const questionsTextTwo = [
+            { id: 1, question: "რის თქმა სურს ავტორს სიტყვებით: „ნავში წყალი თუ უხაპია?“", options: ["გაისარჯა თუ არა ჩასაძირად განწირული ნავის გადასარჩენად", "მიუძღვის თუ არა დამსახურება საზოგადოების წინაშე", "მონაწილეობდა თუ არა ზღვიდან ადამიანების გამოყვანაში", "შეიტანა თუ არა წვლილი ქვეყნის კულტურულ აღმავლობაში"], points: 1 },
+            { id: 2, question: "რას ნიშნავს: „მატიანის ფოლიანტი“?", options: ["საისტორიო წყაროს", "უფლის ნებას", "ხალხის სამსჯავროს", "ხელმწიფის სამართალს"], points: 1 },
+            { id: 3, question: "როგორია ავტორის დამოკიდებულება იმ ადამიანის მიმართ, რომელმაც: „მამულს თავისი სიყვარული... უწყალობა“?", options: ["აღტაცებული", "ირონიული", "კეთილგანწყობილი", "მიმტევებლური"], points: 1 },
+            { id: 4, question: "ჩამოთვლილთაგან რომელია მხატვრული საშუალება?", options: ["„...ვინც ქვეყანაზე დაბადებული არის მლიქვნელად?“", "„...ვისი მახვილიც უგნურება და უმეცრება არის რეგვენთა“.", "„...სიყვარულის ღირსია მხოლოდ და გულზე ხელებს ვინც იბრაგუნებს?“", "„...ტანჯვა არ იცის და ერთობა სხვებზე ქირქილით“."], points: 1 },
+            { id: 5, question: "რას გულისხმობს ავტორი სიტყვებში: „მას ეკუთვნის მხოლოდ სამშობლოს სიყვარულის მონოპოლია“?", options: ["ზოგიერთს ჰგონია, რომ სამშობლოს სიყვარულზე ერთპიროვნული უფლება აქვს", "პატრიოტი მხოლოდ ის არის, ვინც სამშობლოს დაუფიქრებლად შეეწირება", "საზოგადოება ვალდებულია პატრიოტის მიმართ მადლიერებას გამოხატავდეს", "სამშობლოს სიყვარული მხოლოდ ღირსეული მოქალაქის პრივილეგიაა"], points: 1 },
+            { id: 6, question: "რომელი ადამიანური მანკიერება იგულისხმება სტრიქონში: „და ვისაც უნდა მის გარშემო შექმნას ლეგენდა“?", options: ["ამპარტავნობა", "გულგრილობა", "დაუნდობლობა", "სიმხდალე"], points: 1 },
+            { id: 7, question: "რა აზრს გამოხატავს ავტორის მიერ დასმული შეკითხვა: „სად არის მისი აგებული სვეტიცხოველი“?", options: ["მას ხალხმა ამაგი არ დაუფასა", "მას მნიშვნელოვანი არაფერი გაუკეთებია", "მისი ნაღვაწი დრომ გაანადგურა", "მისი შემოქმედება საზოგადოებამ არ მიიღო"], points: 1 },
+            { id: 8, question: "რომელი თვისება იგულისხმება სიტყვებში: „ვინც კაცს გულგრილად გულს უხეთქავს და მერე უხდის საკადრის ქელეხს“?", options: ["თავდაჯერებულობა", "თვალთმაქცობა", "უნიათობა", "წინდაუხედაობა"], points: 1 },
+            { id: 9, question: "რას გულისხმობს ავტორი სიტყვებში: „გადაყვლეფილი სინიდისი“?", options: ["სინდისზე ხელის აღებას", "სინდისით აღძრულ სინანულს", "სინდისით გამოწვეულ ტანჯვას", "სინდისის კარნახით ცხოვრებას"], points: 1 },
+            { id: 10, question: "რა საშუალებას იყენებს ავტორი მკითხველზე ემოციური ზემოქმედების მოსახდენად?", options: ["რიტმულ ალიტერაციას", "რიტორიკულ შეკითხვას", "პერიფრაზს", "ციტირებას"], points: 1 }
+        ];
+
+        const essayPromptTextTwo = {
+            title: "პატრიოტიზმი ზოგჯერ განდიდების მანიით შეპყრობილი ადამიანების თავშესაფრად იქცევა ხოლმე.",
+            instruction: "იმსჯელეთ, როგორაა წარმოჩენილი მოცემულ ლექსში ეს პრობლემა და რამდენად აქტუალურია იგი დღეს.",
+            score: 34
+        };
+
+        // --- COMPONENTS ---
+        const WelcomeScreen = ({ onStart }) => {
+            const [studentName, setStudentName] = useState('');
+
+            const handleStart = () => {
+                if (studentName.trim()) {
+                    onStart(studentName.trim());
+                } else {
+                    alert('გთხოვთ, შეიყვანოთ თქვენი სახელი და გვარი.');
+                }
+            };
+            
+            return (
+                <div className="flex flex-col items-center justify-center h-screen bg-white p-6 rounded-lg shadow-xl text-center max-w-4xl mx-auto">
+                    <header className="w-full text-right text-sm text-gray-600 mb-8">
+                        <p>კოტე ლომიძე</p>
+                        <p>ერთიანი ეროვნული გამოცდები, 2025</p>
+                    </header>
+                    <h1 className="text-4xl font-bold text-blue-800 mb-2">ტესტი ქართულ ენასა და ლიტერატურაში</h1>
+                    <p className="text-xl text-gray-700 mb-8">I ვარიანტი</p>
+
+                    <div className="bg-gray-50 border border-gray-200 rounded-lg p-6 w-full mb-8 georgian-text">
+                        <h2 className="text-xl font-semibold text-center mb-4">ინსტრუქცია</h2>
+                        <p className="mb-4">თქვენ წინაშეა საგამოცდო ტესტის ელექტრონული ბუკლეტი.</p>
+                        <p className="mb-4">ქართული ენისა და ლიტერატურის ტესტი ორი ნაწილისაგან შედგება: I. ტექსტის რედაქტირება; II. წაკითხულის გააზრება და წერითი დავალება. ტესტის ყოველი ნაწილის შესასრულებლად აუცილებელი ინსტრუქციები თან ახლავს შესაბამის დავალებებს.</p>
+                        <p className="font-semibold">გაითვალისწინეთ, ტესტის II ნაწილში მოცემულია ორი ტექსტი. უნდა აირჩიოთ ერთ-ერთი მათგანი (ტექსტი I ან ტექსტი II) და დავალებები მხოლოდ ამ ტექსტის მიხედვით შეასრულოთ.</p>
+                    </div>
+
+                    <div className="text-center w-full mb-8">
+                        <p className="text-lg font-semibold">ტესტის მაქსიმალური ქულაა 60.</p>
+                        <p className="text-lg font-semibold">ტესტის შესასრულებლად გეძლევათ 3 საათი.</p>
+                        <p className="text-2xl font-bold text-green-600 mt-4">გისურვებთ წარმატებას!</p>
+                    </div>
+                    
+                    <div className="w-full max-w-md mb-8">
+                        <input
+                            type="text"
+                            value={studentName}
+                            onChange={(e) => setStudentName(e.target.value)}
+                            placeholder="მაგ., კოტე ლომიძე"
+                            className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            aria-label="Student Name"
+                        />
+                    </div>
+
+                    <button
+                        onClick={handleStart}
+                        className="bg-blue-600 text-white font-bold py-3 px-8 rounded-lg hover:bg-blue-700 transition duration-300 text-xl"
+                    >
+                        გამოცდის დაწყება
+                    </button>
+                </div>
+            );
+        };
+
+        const Timer = ({ seconds }) => {
+            const hours = Math.floor(seconds / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            const secs = seconds % 60;
+            
+            const timeString = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+
+            const timeColor = useMemo(() => {
+                if (seconds <= 60) return 'text-red-600';
+                if (seconds <= 600) return 'text-yellow-600';
+                return 'text-gray-800';
+            }, [seconds]);
+
+            return (
+                <div className={`text-2xl font-bold ${timeColor}`}>
+                    დარჩენილი დრო: {timeString}
+                </div>
+            );
+        };
+
+        const ExamContainer = ({ title, children, timerSeconds }) => {
+            return (
+                <div className="exam-container bg-white shadow-lg rounded-lg my-8 p-6">
+                    <header className="flex justify-between items-center border-b pb-4 mb-6">
+                        <h1 className="text-2xl font-bold text-blue-800">{title}</h1>
+                        <Timer seconds={timerSeconds} />
+                    </header>
+                    <main>{children}</main>
+                    <footer className="text-center text-gray-500 mt-8 pt-4 border-t">
+                        <p>შემდეგ გვერდზე გადასასვლელად და უკან დასაბრუნებლად გამოიყენეთ ეკრანზე არსებული ღილაკები.</p>
+                    </footer>
+                </div>
+            );
+        };
+
+        const PartOne = ({ content, onComplete, initialAnswer }) => {
+            const [editedText, setEditedText] = useState(initialAnswer || content.textToEdit);
+
+            return (
+                <div className="georgian-text">
+                    <div className="bg-blue-50 p-4 rounded-lg border border-blue-200 mb-6">
+                        <h2 className="text-lg font-semibold">{content.title} ({content.score} ქულა)</h2>
+                        <p className="mt-2">{content.instruction}</p>
+                        <p className="mt-2 text-red-700 font-semibold">{content.warning}</p>
+                    </div>
+                    <textarea
+                        value={editedText}
+                        onChange={(e) => setEditedText(e.target.value)}
+                        className="w-full h-96 p-4 border rounded-md georgian-text"
+                        aria-label="Text to edit"
+                    />
+                    <div className="text-right mt-6">
+                         <button
+                            onClick={() => onComplete(editedText)}
+                            className="bg-green-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-green-700 transition duration-300"
+                        >
+                           შემდეგი ნაწილი
+                        </button>
+                    </div>
+                </div>
+            );
+        };
+
+        const Question = ({ data, selected, onSelect }) => {
+            const options = ["ა", "ბ", "გ", "დ"];
+            return (
+                <div className="mb-6 p-4 border rounded-lg bg-gray-50 georgian-text">
+                    <p className="font-semibold mb-3">{data.id}. {data.question} ({data.points} ქულა)</p>
+                    <div>
+                        {data.options.map((option, index) => (
+                            <div key={index} className="flex items-center mb-2">
+                                <input
+                                    type="radio"
+                                    id={`q${data.id}_opt${index}`}
+                                    name={`q${data.id}`}
+                                    value={option}
+                                    checked={selected === option}
+                                    onChange={() => onSelect(data.id, option)}
+                                    className="mr-2"
+                                />
+                                <label htmlFor={`q${data.id}_opt${index}`}>{options[index]}) {option}</label>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        };
+        
+        const Essay = ({ prompt, onUpdate, initialAnswer }) => {
+             const [essayText, setEssayText] = useState(initialAnswer || '');
+             
+             useEffect(() => {
+                onUpdate(essayText);
+             }, [essayText]);
+
+             return (
+                <div className="georgian-text">
+                    <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200 mb-6">
+                        <h3 className="text-lg font-semibold">{prompt.title} ({prompt.score} ქულა)</h3>
+                        <p className="mt-2">{prompt.instruction}</p>
+                    </div>
+                     <textarea
+                        value={essayText}
+                        onChange={(e) => setEssayText(e.target.value)}
+                        className="w-full h-96 p-4 border rounded-md georgian-text"
+                        placeholder="დაიწყეთ წერა აქ..."
+                        aria-label="Essay prompt"
+                    />
+                </div>
+            );
+        };
+        
+        const PartTwo = ({ textContent, questions, essayPrompt, onComplete, initialAnswers }) => {
+            const [answers, setAnswers] = useState(initialAnswers.questions || {});
+            const [essayAnswer, setEssayAnswer] = useState(initialAnswers.essay || '');
+            const [view, setView] = useState('questions'); // 'questions' or 'essay'
+
+            const handleSelect = (qId, option) => {
+                setAnswers(prev => ({ ...prev, [qId]: option }));
+            };
+            
+            const handleEssayUpdate = (text) => {
+                setEssayAnswer(text);
+            };
+            
+            return (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="text-preview-container georgian-text">
+                        <h2 className="text-xl font-bold mb-2">{textContent.title}</h2>
+                        <h3 className="text-lg italic text-gray-600 mb-4">{textContent.author}</h3>
+                        <div dangerouslySetInnerHTML={{ __html: textContent.fullText.replace(/\n/g, '<br />') }} />
+                         <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200 mt-6">
+                            <h3 className="text-lg font-semibold">{essayPrompt.title} ({essayPrompt.score} ქულა)</h3>
+                            <p className="mt-2">{essayPrompt.instruction}</p>
+                        </div>
+                    </div>
+                    <div>
+                         {view === 'questions' ? (
+                            <div>
+                                {questions.map(q => (
+                                    <Question key={q.id} data={q} selected={answers[q.id]} onSelect={handleSelect} />
+                                ))}
+                                <div className="text-right mt-6">
+                                    <button
+                                        onClick={() => setView('essay')}
+                                        className="bg-blue-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-blue-700 transition"
+                                    >
+                                        წერით დავალებაზე გადასვლა
+                                    </button>
+                                </div>
+                            </div>
+                        ) : (
+                             <div>
+                                <Essay prompt={essayPrompt} onUpdate={handleEssayUpdate} initialAnswer={essayAnswer} />
+                                <div className="flex justify-between items-center mt-6">
+                                     <button
+                                        onClick={() => setView('questions')}
+                                        className="bg-gray-500 text-white font-bold py-2 px-6 rounded-lg hover:bg-gray-600 transition"
+                                    >
+                                        უკან კითხვებზე
+                                    </button>
+                                    <button
+                                        onClick={() => onComplete({ questions: answers, essay: essayAnswer })}
+                                        className="bg-green-600 text-white font-bold py-2 px-6 rounded-lg hover:bg-green-700 transition"
+                                    >
+                                        გამოცდის დასრულება
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        };
+        
+        const PartTwoSelector = ({ onSelect }) => {
+            const [preview, setPreview] = useState(null); // null, 'TEXT_ONE', or 'TEXT_TWO'
+            
+            const renderPreview = (textId) => {
+                const isTextOne = textId === TextSelection.TEXT_ONE;
+                const textContent = isTextOne ? textOneContent : textTwoContent;
+                const questions = isTextOne ? questionsTextOne : questionsTextTwo;
+                const essayPrompt = isTextOne ? essayPromptTextOne : essayPromptTextTwo;
+
+                return (
+                    <div className="mt-6">
+                        <div className="text-preview-container georgian-text mb-6">
+                            <h2 className="text-xl font-bold mb-2">{textContent.title}</h2>
+                            <h3 className="text-lg italic text-gray-600 mb-4">{textContent.author}</h3>
+                            <div dangerouslySetInnerHTML={{ __html: textContent.fullText.replace(/\n/g, '<br />') }} />
+                        </div>
+                        <div className="mb-6 text-left">
+                            <h3 className="text-lg font-semibold mb-4">წაკითხულის გააზრების დავალებები:</h3>
+                            {questions.map(q => <div key={q.id} className="p-2 border-b text-sm georgian-text">{q.id}. {q.question}</div>)}
+                        </div>
+                        <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200 mb-6 georgian-text text-left">
+                            <h3 className="text-lg font-semibold">{essayPrompt.title}</h3>
+                            <p className="mt-2">{essayPrompt.instruction}</p>
+                        </div>
+                        <div className="text-center">
+                            <button 
+                                onClick={() => onSelect(textId)}
+                                className="bg-green-600 text-white font-bold py-3 px-8 rounded-lg hover:bg-green-700 transition"
+                            >
+                                ამ ტექსტის არჩევა
+                            </button>
+                        </div>
+                    </div>
+                );
+            };
+
+            return (
+                <div className="text-center georgian-text">
+                    <h2 className="text-xl font-semibold mb-4">აირჩიეთ ქვემოთ მოცემული ორი ტექსტიდან ერთ-ერთი და დავალებები მხოლოდ ამ ტექსტის მიხედვით შეასრულეთ!</h2>
+                    {!preview ? (
+                         <div className="flex justify-center gap-6">
+                            <button onClick={() => setPreview(TextSelection.TEXT_ONE)} className="bg-blue-500 text-white font-bold py-2 px-6 rounded-lg hover:bg-blue-600">ტექსტი I-ის ნახვა</button>
+                            <button onClick={() => setPreview(TextSelection.TEXT_TWO)} className="bg-blue-500 text-white font-bold py-2 px-6 rounded-lg hover:bg-blue-600">ტექსტი II-ის ნახვა</button>
+                        </div>
+                    ) : (
+                        <div>
+                             <button onClick={() => setPreview(null)} className="mb-4 text-blue-600 hover:underline">უკან დაბრუნება</button>
+                             {renderPreview(preview)}
+                        </div>
+                    )}
+                </div>
+            );
+        };
+        
+        const ResultsScreen = ({ studentName, answers }) => {
+            const [copied, setCopied] = useState(false);
+            
+            const handleCopy = () => {
+                const partOneText = answers.partOne || "I ნაწილი არ არის შესრულებული.";
+                
+                const selectedTextId = answers.selectedText;
+                const questions = selectedTextId === TextSelection.TEXT_ONE ? questionsTextOne : questionsTextTwo;
+                const questionAnswers = answers.partTwo?.questions || {};
+                const optionLetters = ["ა", "ბ", "გ", "დ"];
+
+                let partTwoQuestionsText = "";
+                if(Object.keys(questionAnswers).length > 0) {
+                     const answersArray = questions.map(q => {
+                        const answerText = questionAnswers[q.id];
+                        let finalAnswer;
+                        if (answerText) {
+                            const answerIndex = q.options.findIndex(opt => opt === answerText);
+                            finalAnswer = answerIndex !== -1 ? optionLetters[answerIndex] : "-";
+                        } else {
+                            finalAnswer = "-";
+                        }
+                        return `${q.id}. ${finalAnswer}`;
+                    });
+                    partTwoQuestionsText = answersArray.join('\n');
+                } else {
+                    partTwoQuestionsText = "ტესტური დავალებები არ არის შესრულებული.";
+                }
+
+                const partTwoEssayText = answers.partTwo?.essay || "წერითი დავალება არ არის შესრულებული.";
+
+                const fullWork = `
+მოსწავლე: ${studentName}
+------------------------------------
+
+### ნაწილი I: რედაქტირებული ტექსტი ###
+
+${partOneText}
+
+------------------------------------
+
+### ნაწილი II: ტესტური დავალებები ###
+
+${partTwoQuestionsText}
+
+------------------------------------
+
+### წერითი დავალება ###
+
+${partTwoEssayText}
+                `;
+                
+                navigator.clipboard.writeText(fullWork.trim()).then(() => {
+                    setCopied(true);
+                    setTimeout(() => setCopied(false), 2000);
+                });
+            };
+            
+            return (
+                <div className="text-center p-10 georgian-text">
+                    <h1 className="text-3xl font-bold text-green-700 mb-4">გამოცდა დასრულებულია!</h1>
+                    <p className="text-lg mb-6">გმადლობთ მონაწილეობისთვის. თქვენი ნაშრომის მასწავლებლისთვის გასაგზავნად დააჭირეთ კოპირების ღილაკს და შემდეგ ჩასვით (Paste) შესაბამის ველში (მაგ., იმეილში).</p>
+                    <button
+                        onClick={handleCopy}
+                        className="bg-blue-600 text-white font-bold py-3 px-8 rounded-lg hover:bg-blue-700 transition duration-300"
+                    >
+                        {copied ? 'დაკოპირებულია!' : 'ჩემი ნაშრომის კოპირება'}
+                    </button>
+                </div>
+            );
+        };
+
+        // --- MAIN APP ---
+        const App = () => {
+            const [examPart, setExamPart] = useState(ExamPart.WELCOME);
+            const [timeLeft, setTimeLeft] = useState(EXAM_DURATION);
+            const [studentName, setStudentName] = useState('');
+            const [answers, setAnswers] = useState({
+                partOne: '',
+                selectedText: null,
+                partTwo: { questions: {}, essay: '' }
+            });
+
+            const handleTimeUp = useCallback(() => {
+                setExamPart(ExamPart.RESULTS);
+            }, []);
+
+            useEffect(() => {
+                const isExamActive = examPart !== ExamPart.WELCOME && examPart !== ExamPart.RESULTS;
+                if (!isExamActive) {
+                    return;
+                }
+
+                if (timeLeft <= 0) {
+                    handleTimeUp();
+                    return;
+                }
+
+                const timerId = setInterval(() => {
+                    setTimeLeft(prev => prev - 1);
+                }, 1000);
+
+                return () => clearInterval(timerId);
+            }, [examPart, timeLeft, handleTimeUp]);
+
+
+            const handleStart = (name) => {
+                setStudentName(name);
+                setExamPart(ExamPart.PART_ONE);
+            };
+
+            const handlePartOneComplete = (text) => {
+                setAnswers(prev => ({...prev, partOne: text}));
+                setExamPart(ExamPart.PART_TWO_SELECT);
+            };
+            
+            const handleTextSelect = (textId) => {
+                setAnswers(prev => ({ ...prev, selectedText: textId }));
+                setExamPart(ExamPart.PART_TWO);
+            };
+            
+            const handlePartTwoComplete = (partTwoAnswers) => {
+                setAnswers(prev => ({ ...prev, partTwo: partTwoAnswers }));
+                setExamPart(ExamPart.RESULTS);
+            };
+            
+            const renderContent = () => {
+                switch (examPart) {
+                    case ExamPart.WELCOME:
+                        return <WelcomeScreen onStart={handleStart} />;
+                    case ExamPart.PART_ONE:
+                        return (
+                             <ExamContainer title="ნაწილი I: ტექსტის რედაქტირება" timerSeconds={timeLeft}>
+                                <PartOne content={partOneContent} onComplete={handlePartOneComplete} initialAnswer={answers.partOne} />
+                            </ExamContainer>
+                        );
+                    case ExamPart.PART_TWO_SELECT:
+                        return (
+                             <ExamContainer title="ნაწილი II: ტექსტის არჩევა" timerSeconds={timeLeft}>
+                                <PartTwoSelector onSelect={handleTextSelect} />
+                            </ExamContainer>
+                        );
+                    case ExamPart.PART_TWO:
+                        const isTextOne = answers.selectedText === TextSelection.TEXT_ONE;
+                        return (
+                            <ExamContainer title={`ნაწილი II: ${isTextOne ? textOneContent.title : textTwoContent.title}`} timerSeconds={timeLeft}>
+                                <PartTwo
+                                    textContent={isTextOne ? textOneContent : textTwoContent}
+                                    questions={isTextOne ? questionsTextOne : questionsTextTwo}
+                                    essayPrompt={isTextOne ? essayPromptTextOne : essayPromptTextTwo}
+                                    onComplete={handlePartTwoComplete}
+                                    initialAnswers={answers.partTwo}
+                                />
+                            </ExamContainer>
+                        );
+                    case ExamPart.RESULTS:
+                        return <ResultsScreen studentName={studentName} answers={answers} />;
+                    default:
+                        return <WelcomeScreen onStart={handleStart} />;
+                }
+            };
+
+            return <div>{renderContent()}</div>;
+        };
+
+        // --- RENDER ---
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<React.StrictMode><App /></React.StrictMode>);
+    </script>
+<script type="module" src="/index.tsx"></script>
+</body>
+</html>
