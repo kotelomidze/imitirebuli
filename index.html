@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="ka">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ტექსტის გააზრება - დავით გურამიშვილი</title>
+    
+    <!-- React & ReactDOM -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+    
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Tailwind CSS 3 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        serif: ['Libre Baskerville', 'serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Libre Baskerville', serif; }
+        .font-sans { font-family: 'Inter', sans-serif; }
+        
+        /* Custom scrollbar */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #f5f5f0; }
+        ::-webkit-scrollbar-thumb { background: #5A5A40; border-radius: 10px; }
+        
+        .selection-bg::selection { background-color: rgba(90, 90, 64, 0.2); }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.5s ease-out forwards;
+        }
+    </style>
+</head>
+<body class="bg-[#f5f5f0] text-[#1a1a1a] selection-bg">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useMemo } = React;
+
+        // Custom SVG Components to avoid Lucide React loading issues
+        const IconBookOpen = () => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+        );
+        const IconCheckCircle = () => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+        );
+        const IconXCircle = () => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+        );
+        const IconChevronRight = () => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+        );
+        const IconChevronLeft = () => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        );
+        const IconRotateCcw = () => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><polyline points="3 3 3 8 8 8"/></svg>
+        );
+        const IconAward = () => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="7"/><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"/></svg>
+        );
+
+        const QUESTIONS = [
+            {
+                id: 2,
+                text: "რატომ ფიქრობს ავტორი, რომ მისი ნათქვამის გამო შესაძლოა გინება დაუწყონ?",
+                options: [
+                    "მკითხველს საკუთარ პრობლემებზე უნდა ესაუბროს.",
+                    "მტრის უპირატესობის შესახებ უნდა ისაუბროს.",
+                    "ქართველთა ნაკლოვანებები უნდა ამხილოს.",
+                    "ღვთის სასაყვედურო სიტყვები უნდა წარმოთქვას."
+                ],
+                correctAnswer: 2
+            },
+            {
+                id: 3,
+                text: "რატომ თვლის ავტორი, რომ ტყუილის თქმას აზრი არა აქვს?",
+                options: [
+                    "ტყუილის თქმას არავითარი სარგებელი არ მოაქვს.",
+                    "ტყუილის თქმას შთამომავლობა არ აპატიებს.",
+                    "ტყუილის თქმით მტერიც განრისხდება და მოყვარეც.",
+                    "ტყუილის მთქმელი სასუფეველს ვერ ეღირსება."
+                ],
+                correctAnswer: 0
+            },
+            {
+                id: 4,
+                text: "გურამიშვილი ამბობს: „მართალი ვთქვა, მეშინიან, ვა, თუ გავხდე დასაკარგი!“ რას ნიშნავს მოცემულ კონტექსტში სიტყვა „დასაკარგი“?",
+                options: [
+                    "გასაძევებელი.",
+                    "დასატყვევებელი.",
+                    "მისატევებელი.",
+                    "შესაბრალისი."
+                ],
+                correctAnswer: 0
+            },
+            {
+                id: 5,
+                text: "რომელი მხატვრული საშუალებაა გამოყენებული სტრიქონში: „სჯობს ტყუილით ქვე ყოფნასა ზე სიმართლით ავიბარგო“?",
+                options: [
+                    "გაპიროვნება.",
+                    "მეტაფორა.",
+                    "შედარება.",
+                    "ეპითეტი."
+                ],
+                correctAnswer: 1
+            },
+            {
+                id: 6,
+                text: "რის თქმა სურს ავტორს ვაზისა და ძეძვის მრგველთა შეპირისპირებით?",
+                options: [
+                    "სიკეთის მქმნელი და ბოროტების ჩამდენი არ უნდა გავაიგივოთ.",
+                    "სიკეთის მქმნელი და ბოროტების ჩამდენი ერთნაირად უნდა შევაფასოთ.",
+                    "სიკეთის მქმნელმა და ბოროტების ჩამდენმა მორიგება უნდა შეძლონ.",
+                    "სიკეთის მქმნელსა და ბოროტების ჩამდენს ერთნაირი ბოლო მოელით."
+                ],
+                correctAnswer: 0
+            },
+            {
+                id: 7,
+                text: "რას გულისხმობს ავტორი სტრიქონში: „ვინც არა ჰგავს კახაბერსა, მე ვერ ვიტყვი კახაბერად“?",
+                options: [
+                    "არასოდეს უნდა შეაქო ის, ვისაც ქება არ დაუმსახურებია.",
+                    "გარკვეულ შემთხვევაში კარგიც შეიძლება შეაქო და ცუდიც.",
+                    "კარგი ადამიანის შექებამ შესაძლოა მისი მტრები გაანაწყენოს.",
+                    "ქებამ შეიძლება ცუდი ადამიანი სიკეთის გზაზე დააყენოს."
+                ],
+                correctAnswer: 0
+            },
+            {
+                id: 8,
+                text: "რა აზრია გამოხატული სიტყვებში: „...თვით კი ავად მოუხდების“?",
+                options: [
+                    "თვითონ გადაუხდის სამაგიეროს.",
+                    "თვითონ უბიძგებს სიავისაკენ.",
+                    "თვითონ ცუდად მოუბრუნდება.",
+                    "შესაძლოა თვითონ გამოადგეს."
+                ],
+                correctAnswer: 2
+            },
+            {
+                id: 9,
+                text: "ავტორის აზრით, რას გამოიწვევს „ფარვა სიავისა“?",
+                options: [
+                    "მტრის დაფრთხობას.",
+                    "სარწმუნოების შელახვას.",
+                    "ქვეყნის დაზარალებას.",
+                    "ქვეყნის წინსვლას."
+                ],
+                correctAnswer: 2
+            },
+            {
+                id: 10,
+                text: "რომელ სტრიქონშია გამოყენებული მხატვრული საშუალება?",
+                options: [
+                    "„ავს თუ ავი არ უწოდო, კარგს სახელად რა დავარქო“.",
+                    "„ბევრი ავი გამოჩნდება ჩვენი, მაზე მერცხვინება“.",
+                    "„ვერ მოვითმენ, რომ არ დავგმო აღმა მხვნელსა, დაბლა მბარავს“.",
+                    "„მტერს შაესმის, იამების, მოყვარეს კი ეწყინება“."
+                ],
+                correctAnswer: 2
+            },
+            {
+                id: 11,
+                text: "ავტორის როგორი სულიერი მდგომარეობაა გამოხატული სტრიქონში: „მეტად მწარედ გული მტკივა, მაჟრჟოლებს და ტანში მზარავს“?",
+                options: [
+                    "გაკვირვებულია.",
+                    "დარცხვენილია.",
+                    "თავზარდაცემულია.",
+                    "დასევდიანებულია."
+                ],
+                correctAnswer: 2
+            }
+        ];
+
+        const POEM_TEXT = `ამ ამბის თქმა გარჩევითა გულმან ამად არ მინება,
+ბევრი ავი გამოჩნდების ჩვენი, მაზე მერცხვინება,
+მტერს შაესმის, იამების, მოყვარეს კი ეწყინება.
+რასაც ახლა ვამბობ, ვგონებ, ამაზედაც მხვდეს გინება.
+
+ტყუილი ვთქვა, ჩემი თქმული შეიქნების რა სავარგი?
+მართალი ვთქვა, მეშინიან, ვა, თუ გავხდე დასაკარგი!
+კაცს მის მეტი არა აქვს რა სიკვდილს უკან თან საბარგი,
+სულს მიუძღვის ხორცთ ნაქნარი: ავსა – ავი, კარგსა – კარგი.
+
+აწ რომ ავი არ ვაძაგო, კარგი როგორ უნდა ვაქო,
+ავს თუ ავი არ უწოდო, კარგს სახელად რა დავარქო,
+კარგს კაცს ვითარ დაუკარგო, რაც რამ სიკარკაცე აქო,
+ავს კაცს კარგი ვით უძებნო, ორმოს ჩამსვა, თავს დამარქო?!
+
+პირსფერობა, უკან ძრახვა არა თქმულა საფარსაგო.
+სჯობს ტყუილით ქვე ყოფნასა ზე სიმართლით ავიბარგო,
+ვაზის მრგველთან ის არ ვაქო, ვინც მის ნაცვლად ძეძვი დარგო,
+მაზე სული არ წარვსწყმინდო, რა გინდ ხორცით დავიკარგო.
+
+მართალს ვიტყვი, შევიქნები ტყუილისა მოამბე რად?
+ვერას უქებ საძაგელთა, უფერულთა პირსაფერად.
+მე, თუ გინდა, თავი მომჭრან, ტანი გახდეს გასაბერად,
+ვინც არა ჰგავს კახაბერსა, მე ვერ ვიტყვი კახაბერად.
+
+მართალია, მძრახველს ძრახვა თვით კი ავად მოუხდების,
+მაგრამ ფარვა სიავისა ქვეყანას არ მოუხდების!
+წამხდენელთა და მბაძველთა კიდევ სხვაც რამ წაუხდების,
+ძრახვავე სჯობს საძრახავთა, ძრახვას კაცი მოუფთხვების...
+
+რა გინდ რომე კაცმან მალოს, ჭირი თავსა არ დამალავს,
+ვერ გაუძლებს, რაც კაცს სენი გულსა უკოდს, სჩხვლეტს და მსჭვალავს.
+სხვის არმკრძალავს რად ემდურის, ვინც თავის თავს არა ჰკრძალავს,
+თვით ვერ ხედავს, სხვის საჭვრეტლად, თუ არ უნდა, პირს რად ჰკალავს?
+
+მე კი ვჰფარავ, მაგრამ ჩემი სატკივარი არა ჰფარავს,
+მეტად მწარედ გული მტკივა, მაჟრჟოლებს და ტანში მზარავს!
+ვერ მოვითმენ, რომ არ დავგმო აღმა მხვნელსა, დაღმა მბარავს,
+ჩემი ცოდვამც მისცემია ჩემს ამამთხრელს, ამამბზარავს!`;
+
+        function App() {
+            const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+            const [userAnswers, setUserAnswers] = useState({});
+            const [isFinished, setIsFinished] = useState(false);
+            const [showFeedback, setShowFeedback] = useState(false);
+
+            const currentQuestion = QUESTIONS[currentQuestionIndex];
+            const progress = ((currentQuestionIndex + 1) / QUESTIONS.length) * 100;
+
+            const handleAnswer = (optionIndex) => {
+                if (showFeedback) return;
+                setUserAnswers(prev => ({ ...prev, [currentQuestion.id]: optionIndex }));
+                setShowFeedback(true);
+            };
+
+            const handleNext = () => {
+                if (currentQuestionIndex < QUESTIONS.length - 1) {
+                    setCurrentQuestionIndex(prev => prev + 1);
+                    setShowFeedback(false);
+                } else {
+                    setIsFinished(true);
+                }
+            };
+
+            const handlePrevious = () => {
+                if (currentQuestionIndex > 0) {
+                    setCurrentQuestionIndex(prev => prev - 1);
+                    setShowFeedback(false);
+                }
+            };
+
+            const resetQuiz = () => {
+                setCurrentQuestionIndex(0);
+                setUserAnswers({});
+                setIsFinished(false);
+                setShowFeedback(false);
+            };
+
+            const score = useMemo(() => {
+                return QUESTIONS.reduce((acc, q) => {
+                    return userAnswers[q.id] === q.correctAnswer ? acc + 1 : acc;
+                }, 0);
+            }, [userAnswers]);
+
+            if (isFinished) {
+                return (
+                    <div className="min-h-screen flex items-center justify-center p-4 animate-fade-in">
+                        <div className="bg-white p-8 rounded-[32px] shadow-xl max-w-md w-full text-center border border-[#5A5A40]/10">
+                            <div className="flex justify-center mb-6">
+                                <div className="w-20 h-20 bg-[#5A5A40] rounded-full flex items-center justify-center text-white">
+                                    <IconAward />
+                                </div>
+                            </div>
+                            <h2 className="text-3xl font-bold text-[#1a1a1a] mb-2">ტესტი დასრულდა!</h2>
+                            <p className="text-[#5A5A40] mb-6">თქვენი შედეგი</p>
+                            <div className="text-6xl font-black text-[#5A5A40] mb-8">
+                                {score} / {QUESTIONS.length}
+                            </div>
+                            <button
+                                onClick={resetQuiz}
+                                className="w-full bg-[#5A5A40] text-white py-4 rounded-full font-medium hover:bg-[#4A4A30] transition-colors flex items-center justify-center gap-2"
+                            >
+                                <IconRotateCcw />
+                                თავიდან დაწყება
+                            </button>
+                        </div>
+                    </div>
+                );
+            }
+
+            return (
+                <div className="min-h-screen animate-fade-in">
+                    <header className="bg-white border-b border-[#5A5A40]/10 sticky top-0 z-10 px-6 py-4">
+                        <div className="max-w-7xl mx-auto flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-[#5A5A40] text-white rounded-xl">
+                                    <IconBookOpen />
+                                </div>
+                                <div>
+                                    <h1 className="text-xl font-bold leading-tight">ტექსტის გააზრება</h1>
+                                    <p className="text-xs text-[#5A5A40] uppercase tracking-wider font-sans">დავით გურამიშვილი - „დავითიანი“</p>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-4">
+                                <div className="hidden sm:block w-48 h-2 bg-[#5A5A40]/10 rounded-full overflow-hidden">
+                                    <div className="h-full bg-[#5A5A40] transition-all duration-500" style={{ width: `${progress}%` }}></div>
+                                </div>
+                                <span className="text-sm font-medium font-sans text-[#5A5A40]">
+                                    {currentQuestionIndex + 1} / {QUESTIONS.length}
+                                </span>
+                            </div>
+                        </div>
+                    </header>
+
+                    <main className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8 p-6 lg:p-10">
+                        <section className="bg-white rounded-[32px] p-8 lg:p-12 shadow-sm border border-[#5A5A40]/5 h-fit lg:sticky lg:top-28">
+                            <h2 className="text-2xl font-bold mb-8 text-[#5A5A40] border-b border-[#5A5A40]/10 pb-4 italic">ტექსტი I</h2>
+                            <div className="space-y-6">
+                                {POEM_TEXT.split('\n\n').map((paragraph, i) => (
+                                    <p key={i} className="mb-6 leading-relaxed whitespace-pre-line text-lg text-[#333]">
+                                        {paragraph}
+                                    </p>
+                                ))}
+                            </div>
+                        </section>
+
+                        <section className="flex flex-col gap-6">
+                            <div className="bg-white rounded-[32px] p-8 lg:p-10 shadow-sm border border-[#5A5A40]/5">
+                                <h3 className="text-2xl font-bold mb-8 leading-snug">{currentQuestion.text}</h3>
+                                <div className="space-y-4">
+                                    {currentQuestion.options.map((option, index) => {
+                                        const isSelected = userAnswers[currentQuestion.id] === index;
+                                        const isCorrect = index === currentQuestion.correctAnswer;
+                                        const showCorrect = showFeedback && isCorrect;
+                                        const showWrong = showFeedback && isSelected && !isCorrect;
+
+                                        let bgColor = "bg-[#f5f5f0] hover:bg-[#ebebe5]";
+                                        let borderColor = "border-transparent";
+                                        let textColor = "text-[#1a1a1a]";
+
+                                        if (showCorrect) {
+                                            bgColor = "bg-emerald-50";
+                                            borderColor = "border-emerald-500";
+                                            textColor = "text-emerald-700";
+                                        } else if (showWrong) {
+                                            bgColor = "bg-rose-50";
+                                            borderColor = "border-rose-500";
+                                            textColor = "text-rose-700";
+                                        } else if (isSelected && !showFeedback) {
+                                            bgColor = "bg-[#5A5A40]/10";
+                                            borderColor = "border-[#5A5A40]";
+                                        }
+
+                                        return (
+                                            <button
+                                                key={index}
+                                                onClick={() => handleAnswer(index)}
+                                                disabled={showFeedback}
+                                                className={`w-full text-left p-6 rounded-2xl border-2 transition-all duration-200 flex items-start gap-4 ${bgColor} ${borderColor} ${textColor} group`}
+                                            >
+                                                <span className="font-sans font-bold text-sm mt-1 opacity-40 group-hover:opacity-100">
+                                                    {String.fromCharCode(4304 + index)})
+                                                </span>
+                                                <span className="flex-1 text-lg leading-relaxed">{option}</span>
+                                                {showCorrect && <div className="text-emerald-500 shrink-0 mt-1"><IconCheckCircle /></div>}
+                                                {showWrong && <div className="text-rose-500 shrink-0 mt-1"><IconXCircle /></div>}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+
+                                <div className="mt-10 flex items-center justify-between">
+                                    <button
+                                        onClick={handlePrevious}
+                                        disabled={currentQuestionIndex === 0}
+                                        className="flex items-center gap-2 text-[#5A5A40] font-medium disabled:opacity-30 hover:translate-x-[-4px] transition-transform"
+                                    >
+                                        <IconChevronLeft /> 
+                                    </button>
+                                    {showFeedback && (
+                                        <button
+                                            onClick={handleNext}
+                                            className="bg-[#5A5A40] text-white px-8 py-3 rounded-full font-medium flex items-center gap-2 hover:bg-[#4A4A30] transition-colors shadow-lg shadow-[#5A5A40]/20"
+                                        >
+                                            {currentQuestionIndex === QUESTIONS.length - 1 ? "შედეგები" : "შემდეგი"}
+                                            <IconChevronRight />
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="bg-[#5A5A40] text-white p-6 rounded-[32px] flex items-start gap-4">
+                                <div className="bg-white/20 p-2 rounded-lg"><IconBookOpen /></div>
+                                <div>
+                                    <h4 className="font-bold mb-1">რჩევა</h4>
+                                    <p className="text-sm opacity-90 leading-relaxed">ყურადღებით წაიკითხეთ ტექსტი. პასუხის გაცემამდე დარწმუნდით, რომ სწორად გაიგეთ ავტორის სათქმელი.</p>
+                                </div>
+                            </div>
+                        </section>
+                    </main>
+
+                    <footer className="max-w-7xl mx-auto p-10 text-center text-[#5A5A40]/60 text-sm font-sans">
+                        &copy; 2024 საგანმანათლებლო პლატფორმა მოსწავლეებისთვის
+                    </footer>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
